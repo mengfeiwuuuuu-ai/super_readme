@@ -6,3 +6,7 @@ Pygments==2.18.*
 MarkupSafe==3.0.*
 Werkzeug==3.1.*
 requests==2.32.*
+
+# 测试依赖
+pytest>=8.0
+pytest-cov>=6.0

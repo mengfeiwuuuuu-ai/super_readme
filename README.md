@@ -244,6 +244,7 @@ myblob/
 ├── app.py                          # Flask 主应用（路由、视图）
 ├── config.py                       # 应用配置
 ├── requirements.txt                # Python 依赖
+├── pyproject.toml                  # pytest 与覆盖率配置
 ├── README.md                       # 本文件
 │
 ├── models/
@@ -253,6 +254,18 @@ myblob/
 │   ├── __init__.py
 │   ├── markdown_scanner.py         # Markdown 文件扫描与解析
 │   └── github_proxy.py             # GitHub API 代理
+│
+├── tests/                          # 单元测试目录
+│   ├── __init__.py
+│   ├── conftest.py                 # 共享 fixtures（app、db、client、auth 辅助）
+│   ├── test_models.py              # 数据库模型测试
+│   ├── test_markdown_scanner.py    # Markdown 扫描工具测试
+│   ├── test_github_proxy.py        # GitHub 代理测试（Mock HTTP）
+│   ├── test_routes.py              # 页面路由测试
+│   ├── test_auth.py                # 认证路由测试
+│   ├── test_admin.py               # 管理后台测试
+│   ├── test_api.py                 # API 路由测试
+│   └── test_config.py              # 配置测试
 │
 ├── templates/                      # Jinja2 HTML 模板
 │   ├── base.html                   # 基础模板（导航、页脚）
@@ -286,6 +299,69 @@ myblob/
     └── 项目/
         └── myblob-introduction.md
 ```
+
+---
+
+## 🧪 单元测试
+
+项目包含完整的单元测试套件，使用 **pytest** 框架，共 **172 个测试用例**，整体代码覆盖率 **86%**。
+
+### 测试结果总览
+
+| 测试文件 | 测试类 | 测试数 | 覆盖内容 |
+|----------|--------|--------|----------|
+| `tests/conftest.py` | — | — | 共享 fixtures：app、db、client、auth 辅助、示例数据 |
+| `tests/test_models.py` | 3 类 | 21 | User/Post/Category 模型：CRUD、密码哈希、唯一约束、关系、序列化 |
+| `tests/test_markdown_scanner.py` | 5 类 | 28 | front matter 解析、slug 生成、摘要生成、文件夹扫描、分类提取 |
+| `tests/test_github_proxy.py` | 7 类 | 16 | GitHubProxy 所有方法（Mock HTTP，无需网络） |
+| `tests/test_routes.py` | 4 类 | 15 | 首页、文章页、分类页、404/403 错误页 |
+| `tests/test_auth.py` | 4 类 | 18 | 登录/注册/登出/个人资料：成功/失败/权限验证 |
+| `tests/test_admin.py` | 5 类 | 24 | 管理后台、编辑器、分类管理、用户管理、文章同步 |
+| `tests/test_api.py` | 4 类 | 18 | 主题切换、文章列表、Markdown 预览、GitHub 代理路由 |
+| `tests/test_config.py` | 4 类 | 14 | 基础配置、开发/生产环境、配置映射 |
+
+### 代码覆盖率
+
+| 模块 | 覆盖率 |
+|------|--------|
+| `config.py` | **100%** |
+| `models/__init__.py` | **100%** |
+| `utils/markdown_scanner.py` | **95%** |
+| `utils/github_proxy.py` | **89%** |
+| `app.py` | **82%** |
+| **总计** | **86%** |
+
+### 运行测试
+
+```bash
+# 安装测试依赖
+pip install pytest pytest-cov
+
+# 运行全部测试
+python -m pytest tests/ -v
+
+# 运行单个测试文件
+python -m pytest tests/test_models.py -v
+
+# 运行指定测试类
+python -m pytest tests/test_auth.py::TestLogin -v
+
+# 运行单个测试
+python -m pytest tests/test_auth.py::TestLogin::test_login_success -v
+
+# 查看覆盖率报告（终端）
+python -m pytest tests/ --cov=. --cov-report=term-missing
+
+# 生成 HTML 覆盖率报告
+python -m pytest tests/ --cov=. --cov-report=html
+# 然后打开 htmlcov/index.html 查看
+```
+
+### 在 VS Code 中运行测试
+
+1. 打开任意测试文件，点击测试函数旁的绿色三角按钮直接运行/调试单个测试
+2. 使用 **Testing** 面板（侧边栏烧杯图标）浏览并运行所有测试
+3. 按 `F5` 配合 launch.json 可以断点调试测试用例
 
 ---
 
