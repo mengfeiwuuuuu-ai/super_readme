@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}个人资料 - {{ blog_title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="profile-container">
+        <div class="profile-card">
+            <div class="profile-header">
+                <div class="profile-avatar">
+                    {% if current_user.avatar %}
+                    <img src="{{ current_user.avatar }}" alt="{{ current_user.username }}">
+                    {% else %}
+                    <div class="avatar-placeholder">
+                        {{ current_user.username[0]|upper }}
+                    </div>
+                    {% endif %}
+                </div>
+                <h2>{{ current_user.username }}</h2>
+                <p class="profile-email">{{ current_user.email }}</p>
+                {% if current_user.is_admin %}
+                <span class="badge badge-primary">管理员</span>
+                {% endif %}
+                <p class="profile-date">注册于 {{ current_user.created_at.strftime('%Y年%m月%d日') }}</p>
+            </div>
+
+            <form method="POST" class="profile-form">
+                <div class="form-group">
+                    <label for="avatar">头像 URL</label>
+                    <input type="url" id="avatar" name="avatar" class="form-control"
+                           value="{{ current_user.avatar }}" placeholder="https://example.com/avatar.jpg">
+                </div>
+                <div class="form-group">
+                    <label for="bio">个人简介</label>
+                    <textarea id="bio" name="bio" class="form-control" rows="4"
+                              placeholder="介绍一下自己...">{{ current_user.bio }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> 保存修改
+                </button>
+            </form>
+        </div>
+
+        <!-- 我的文章 -->
+        {% if current_user.is_admin %}
+        <div class="profile-section">
+            <h3>我的文章 ({{ current_user.posts.count() }})</h3>
+            <div class="profile-posts">
+                {% for post in current_user.posts.order_by(None).limit(10).all() %}
+                <div class="profile-post-item">
+                    <a href="{{ url_for('view_post', slug=post.slug) }}">{{ post.title }}</a>
+                    <span class="text-muted">{{ post.created_at.strftime('%Y-%m-%d') }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

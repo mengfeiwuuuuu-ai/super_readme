@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}{{ category.name }} - {{ blog_title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <section class="category-header" style="--cat-color: {{ category.color }}">
+        <span class="category-icon-large">{{ category.icon }}</span>
+        <h1>{{ category.name }}</h1>
+        {% if category.description %}
+        <p>{{ category.description }}</p>
+        {% endif %}
+        <span class="category-count">共 {{ pagination.total }} 篇文章</span>
+    </section>
+
+    <section class="posts-grid">
+        {% if posts %}
+            {% for post in posts %}
+            <article class="post-card">
+                {% if post.cover_image %}
+                <div class="post-card-image">
+                    <img src="{{ post.cover_image }}" alt="{{ post.title }}" loading="lazy">
+                </div>
+                {% endif %}
+                <div class="post-card-body">
+                    <div class="post-card-meta">
+                        <span class="post-date">
+                            <i class="far fa-calendar"></i>
+                            {{ post.created_at.strftime('%Y-%m-%d') }}
+                        </span>
+                    </div>
+                    <h2 class="post-card-title">
+                        <a href="{{ url_for('view_post', slug=post.slug) }}">{{ post.title }}</a>
+                    </h2>
+                    <p class="post-card-summary">{{ post.summary }}</p>
+                    <div class="post-card-footer">
+                        <span class="post-author">
+                            <i class="far fa-user"></i>
+                            {{ post.author.username if post.author else '佚名' }}
+                        </span>
+                        <a href="{{ url_for('view_post', slug=post.slug) }}" class="read-more">
+                            阅读更多 <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-folder-open fa-3x"></i>
+                <h3>该分类下暂无文章</h3>
+            </div>
+        {% endif %}
+    </section>
+
+    {% if pagination.pages > 1 %}
+    <nav class="pagination">
+        {% if pagination.has_prev %}
+        <a href="{{ url_for('view_category', slug=category.slug, page=pagination.prev_num) }}" class="page-link">
+            <i class="fas fa-chevron-left"></i> 上一页
+        </a>
+        {% endif %}
+        {% for page_num in pagination.iter_pages() %}
+            {% if page_num %}
+            <a href="{{ url_for('view_category', slug=category.slug, page=page_num) }}"
+               class="page-link {% if page_num == pagination.page %}active{% endif %}">{{ page_num }}</a>
+            {% else %}
+            <span class="page-ellipsis">...</span>
+            {% endif %}
+        {% endfor %}
+        {% if pagination.has_next %}
+        <a href="{{ url_for('view_category', slug=category.slug, page=pagination.next_num) }}" class="page-link">
+            下一页 <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

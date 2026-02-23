@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title }} - {{ blog_title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <article class="post-detail">
+        <!-- 文章头部 -->
+        <header class="post-header">
+            <div class="post-meta">
+                {% for cat in post.categories %}
+                <a href="{{ url_for('view_category', slug=cat.slug) }}"
+                   class="post-category" style="background-color: {{ cat.color }}">
+                    {{ cat.icon }} {{ cat.name }}
+                </a>
+                {% endfor %}
+            </div>
+            <h1 class="post-title">{{ post.title }}</h1>
+            <div class="post-info">
+                <span><i class="far fa-user"></i> {{ post.author.username if post.author else '佚名' }}</span>
+                <span><i class="far fa-calendar"></i> {{ post.created_at.strftime('%Y年%m月%d日') }}</span>
+                {% if post.updated_at and post.updated_at != post.created_at %}
+                <span><i class="fas fa-sync-alt"></i> 更新于 {{ post.updated_at.strftime('%Y年%m月%d日') }}</span>
+                {% endif %}
+                <span><i class="far fa-eye"></i> {{ post.view_count }} 次阅读</span>
+                {% if post.is_from_file %}
+                <span class="badge badge-info"><i class="fas fa-file-alt"></i> 来自文件</span>
+                {% endif %}
+            </div>
+        </header>
+
+        {% if post.cover_image %}
+        <div class="post-cover">
+            <img src="{{ post.cover_image }}" alt="{{ post.title }}">
+        </div>
+        {% endif %}
+
+        <!-- 文章内容 -->
+        <div class="post-content markdown-body">
+            {{ html_content }}
+        </div>
+
+        <!-- 文章底部 -->
+        <footer class="post-footer">
+            <div class="post-tags">
+                {% for cat in post.categories %}
+                <a href="{{ url_for('view_category', slug=cat.slug) }}" class="tag">
+                    {{ cat.icon }} {{ cat.name }}
+                </a>
+                {% endfor %}
+            </div>
+
+            {% if current_user.is_authenticated and current_user.is_admin %}
+            <div class="post-actions">
+                <a href="{{ url_for('editor', id=post.id) }}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-edit"></i> 编辑
+                </a>
+                <form action="{{ url_for('delete_post', post_id=post.id) }}" method="post"
+                      style="display:inline" onsubmit="return confirm('确定删除这篇文章吗？')">
+                    <button type="submit" class="btn btn-sm btn-danger">
+                        <i class="fas fa-trash"></i> 删除
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </footer>
+
+        <!-- 导航 -->
+        <nav class="post-nav">
+            <a href="{{ url_for('index') }}" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i> 返回首页
+            </a>
+        </nav>
+    </article>
+</div>
+{% endblock %}

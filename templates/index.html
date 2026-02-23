@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}{{ blog_title }} - 首页{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- 头部横幅 -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1 class="hero-title">{{ blog_title }}</h1>
+            <p class="hero-subtitle">{{ blog_subtitle }}</p>
+            {% if current_user.is_authenticated %}
+            <div class="hero-user-info">
+                <span>👋 欢迎回来，<strong>{{ current_user.username }}</strong></span>
+                {% if current_user.is_admin %}
+                <span class="badge badge-primary">管理员</span>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% if search_query %}
+            <p class="search-result-info">
+                搜索 "<strong>{{ search_query }}</strong>" 的结果，共 {{ pagination.total }} 篇
+                <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline">清除搜索</a>
+            </p>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- 分类标签 -->
+    <section class="category-tags">
+        <a href="{{ url_for('index') }}"
+           class="category-tag {% if not current_category %}active{% endif %}">
+            📋 全部
+        </a>
+        {% for cat in all_categories %}
+        <a href="{{ url_for('index', category=cat.slug) }}"
+           class="category-tag {% if current_category == cat.slug %}active{% endif %}"
+           style="--tag-color: {{ cat.color }}">
+            {{ cat.icon }} {{ cat.name }}
+        </a>
+        {% endfor %}
+    </section>
+
+    <!-- 文章列表 -->
+    <section class="posts-grid">
+        {% if posts %}
+            {% for post in posts %}
+            <article class="post-card">
+                {% if post.cover_image %}
+                <div class="post-card-image">
+                    <img src="{{ post.cover_image }}" alt="{{ post.title }}" loading="lazy">
+                </div>
+                {% endif %}
+                <div class="post-card-body">
+                    <div class="post-card-meta">
+                        {% for cat in post.categories %}
+                        <span class="post-category" style="background-color: {{ cat.color }}">
+                            {{ cat.icon }} {{ cat.name }}
+                        </span>
+                        {% endfor %}
+                        <span class="post-date">
+                            <i class="far fa-calendar"></i>
+                            {{ post.created_at.strftime('%Y-%m-%d') }}
+                        </span>
+                    </div>
+                    <h2 class="post-card-title">
+                        <a href="{{ url_for('view_post', slug=post.slug) }}">{{ post.title }}</a>
+                    </h2>
+                    <p class="post-card-summary">{{ post.summary }}</p>
+                    <div class="post-card-footer">
+                        <span class="post-author">
+                            <i class="far fa-user"></i>
+                            {{ post.author.username if post.author else '佚名' }}
+                        </span>
+                        <span class="post-views">
+                            <i class="far fa-eye"></i> {{ post.view_count }}
+                        </span>
+                        <a href="{{ url_for('view_post', slug=post.slug) }}" class="read-more">
+                            阅读更多 <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-inbox fa-3x"></i>
+                <h3>暂无文章</h3>
+                <p>还没有发布任何文章，请稍后再来。</p>
+                {% if current_user.is_authenticated and current_user.is_admin %}
+                <a href="{{ url_for('editor') }}" class="btn btn-primary">写篇文章</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </section>
+
+    <!-- 分页 -->
+    {% if pagination.pages > 1 %}
+    <nav class="pagination">
+        {% if pagination.has_prev %}
+        <a href="{{ url_for('index', page=pagination.prev_num, category=current_category, q=search_query) }}"
+           class="page-link">
+            <i class="fas fa-chevron-left"></i> 上一页
+        </a>
+        {% endif %}
+
+        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page_num %}
+                <a href="{{ url_for('index', page=page_num, category=current_category, q=search_query) }}"
+                   class="page-link {% if page_num == pagination.page %}active{% endif %}">
+                    {{ page_num }}
+                </a>
+            {% else %}
+                <span class="page-ellipsis">...</span>
+            {% endif %}
+        {% endfor %}
+
+        {% if pagination.has_next %}
+        <a href="{{ url_for('index', page=pagination.next_num, category=current_category, q=search_query) }}"
+           class="page-link">
+            下一页 <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

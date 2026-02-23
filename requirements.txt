@@ -1,0 +1,8 @@
+Flask==3.1.*
+Flask-SQLAlchemy==3.1.*
+Flask-Login==0.6.*
+Markdown==3.7.*
+Pygments==2.18.*
+MarkupSafe==3.0.*
+Werkzeug==3.1.*
+requests==2.32.*

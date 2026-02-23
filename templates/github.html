@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}GitHub 仓库浏览 - {{ blog_title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="github-page">
+        <h1><i class="fab fa-github"></i> GitHub 仓库浏览器</h1>
+        <p>通过代理查看 GitHub 仓库信息和 README 文档</p>
+
+        <!-- 搜索区域 -->
+        <div class="github-search-area">
+            <div class="search-tabs">
+                <button class="tab-btn active" data-tab="repo">仓库查看</button>
+                <button class="tab-btn" data-tab="search">搜索仓库</button>
+                <button class="tab-btn" data-tab="user">用户仓库</button>
+            </div>
+
+            <!-- 仓库查看 -->
+            <div class="tab-content active" id="tab-repo">
+                <form class="github-form" id="repoForm">
+                    <div class="form-row">
+                        <div class="form-group form-group-half">
+                            <input type="text" id="repoOwner" class="form-control"
+                                   placeholder="仓库拥有者 (如: torvalds)" required>
+                        </div>
+                        <div class="form-group form-group-half">
+                            <input type="text" id="repoName" class="form-control"
+                                   placeholder="仓库名称 (如: linux)" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> 查看仓库
+                    </button>
+                </form>
+            </div>
+
+            <!-- 搜索仓库 -->
+            <div class="tab-content" id="tab-search">
+                <form class="github-form" id="searchForm">
+                    <div class="form-group">
+                        <input type="text" id="searchQuery" class="form-control"
+                               placeholder="输入关键词搜索 GitHub 仓库..." required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> 搜索
+                    </button>
+                </form>
+            </div>
+
+            <!-- 用户仓库 -->
+            <div class="tab-content" id="tab-user">
+                <form class="github-form" id="userForm">
+                    <div class="form-group">
+                        <input type="text" id="githubUsername" class="form-control"
+                               placeholder="输入 GitHub 用户名..." required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> 查看仓库
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 加载指示器 -->
+        <div class="loading" id="githubLoading" style="display:none">
+            <div class="spinner"></div>
+            <span>正在加载...</span>
+        </div>
+
+        <!-- 结果展示区 -->
+        <div id="githubResult" class="github-result"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loading = document.getElementById('githubLoading');
+    const result = document.getElementById('githubResult');
+
+    // Tab 切换
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+            result.innerHTML = '';
+        });
+    });
+
+    function showLoading() { loading.style.display = 'flex'; result.innerHTML = ''; }
+    function hideLoading() { loading.style.display = 'none'; }
+
+    // 查看仓库
+    document.getElementById('repoForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const owner = document.getElementById('repoOwner').value.trim();
+        const repo = document.getElementById('repoName').value.trim();
+        if (!owner || !repo) return;
+
+        showLoading();
+        Promise.all([
+            fetch(`/api/github/repo/${owner}/${repo}`).then(r => r.json()),
+            fetch(`/api/github/readme/${owner}/${repo}`).then(r => r.json())
+        ]).then(([repoData, readmeData]) => {
+            hideLoading();
+            let html = '';
+
+            if (repoData.success) {
+                const d = repoData.data;
+                html += `
+                <div class="github-repo-card">
+                    <div class="repo-header">
+                        <h2><i class="fab fa-github"></i> <a href="${d.html_url}" target="_blank">${d.full_name}</a></h2>
+                        <p>${d.description || '暂无描述'}</p>
+                    </div>
+                    <div class="repo-stats">
+                        <span><i class="fas fa-star"></i> ${d.stars} Stars</span>
+                        <span><i class="fas fa-code-branch"></i> ${d.forks} Forks</span>
+                        <span><i class="fas fa-code"></i> ${d.language || 'N/A'}</span>
+                    </div>
+                    ${d.topics && d.topics.length ? '<div class="repo-topics">' + d.topics.map(t => `<span class="topic-tag">${t}</span>`).join('') + '</div>' : ''}
+                </div>`;
+            } else {
+                html += `<div class="alert alert-danger">获取仓库信息失败: ${repoData.error}</div>`;
+            }
+
+            if (readmeData.success) {
+                html += `
+                <div class="github-readme">
+                    <h3><i class="fas fa-book"></i> README.md</h3>
+                    <div class="markdown-body">${readmeData.html}</div>
+                </div>`;
+            }
+
+            result.innerHTML = html;
+        }).catch(err => {
+            hideLoading();
+            result.innerHTML = `<div class="alert alert-danger">请求失败: ${err.message}</div>`;
+        });
+    });
+
+    // 搜索仓库
+    document.getElementById('searchForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const q = document.getElementById('searchQuery').value.trim();
+        if (!q) return;
+
+        showLoading();
+        fetch(`/api/github/search?q=${encodeURIComponent(q)}`)
+        .then(r => r.json())
+        .then(data => {
+            hideLoading();
+            if (data.success && data.repos.length > 0) {
+                let html = `<p class="search-info">找到 ${data.total} 个相关仓库</p><div class="repo-list">`;
+                data.repos.forEach(repo => {
+                    html += `
+                    <div class="repo-list-item">
+                        <h3><a href="${repo.html_url}" target="_blank">${repo.full_name}</a></h3>
+                        <p>${repo.description || '暂无描述'}</p>
+                        <div class="repo-stats-inline">
+                            <span><i class="fas fa-star"></i> ${repo.stars}</span>
+                            <span><i class="fas fa-code"></i> ${repo.language || 'N/A'}</span>
+                        </div>
+                    </div>`;
+                });
+                html += '</div>';
+                result.innerHTML = html;
+            } else {
+                result.innerHTML = '<div class="empty-state"><p>未找到相关仓库</p></div>';
+            }
+        }).catch(err => {
+            hideLoading();
+            result.innerHTML = `<div class="alert alert-danger">搜索失败: ${err.message}</div>`;
+        });
+    });
+
+    // 用户仓库
+    document.getElementById('userForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const username = document.getElementById('githubUsername').value.trim();
+        if (!username) return;
+
+        showLoading();
+        fetch(`/api/github/user/${username}/repos`)
+        .then(r => r.json())
+        .then(data => {
+            hideLoading();
+            if (data.success && data.repos.length > 0) {
+                let html = `<h3>${username} 的公开仓库</h3><div class="repo-list">`;
+                data.repos.forEach(repo => {
+                    html += `
+                    <div class="repo-list-item">
+                        <h3><a href="${repo.html_url}" target="_blank">${repo.name}</a></h3>
+                        <p>${repo.description || '暂无描述'}</p>
+                        <div class="repo-stats-inline">
+                            <span><i class="fas fa-star"></i> ${repo.stars}</span>
+                            <span><i class="fas fa-code"></i> ${repo.language || 'N/A'}</span>
+                        </div>
+                    </div>`;
+                });
+                html += '</div>';
+                result.innerHTML = html;
+            } else {
+                result.innerHTML = '<div class="empty-state"><p>未找到该用户的仓库</p></div>';
+            }
+        }).catch(err => {
+            hideLoading();
+            result.innerHTML = `<div class="alert alert-danger">请求失败: ${err.message}</div>`;
+        });
+    });
+});
+</script>
+{% endblock %}

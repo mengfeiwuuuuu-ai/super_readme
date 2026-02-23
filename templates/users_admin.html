@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}用户管理 - {{ blog_title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="admin-header">
+        <h1><i class="fas fa-users-cog"></i> 用户管理</h1>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline">
+            <i class="fas fa-arrow-left"></i> 返回后台
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>用户名</th>
+                        <th>邮箱</th>
+                        <th>角色</th>
+                        <th>注册时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td><strong>{{ user.username }}</strong></td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            {% if user.is_admin %}
+                            <span class="badge badge-primary">管理员</span>
+                            {% else %}
+                            <span class="badge badge-secondary">普通用户</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            {% if user.id != current_user.id %}
+                            <form action="{{ url_for('toggle_admin', user_id=user.id) }}" method="post" style="display:inline">
+                                <button type="submit" class="btn btn-sm {% if user.is_admin %}btn-warning{% else %}btn-success{% endif %}">
+                                    {% if user.is_admin %}
+                                    <i class="fas fa-user-minus"></i> 撤销管理员
+                                    {% else %}
+                                    <i class="fas fa-user-shield"></i> 设为管理员
+                                    {% endif %}
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="text-muted">当前用户</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

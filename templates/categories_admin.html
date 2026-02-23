@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}分类管理 - {{ blog_title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="admin-header">
+        <h1><i class="fas fa-tags"></i> 分类管理</h1>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline">
+            <i class="fas fa-arrow-left"></i> 返回后台
+        </a>
+    </div>
+
+    <!-- 新建分类 -->
+    <div class="card">
+        <h3>新建分类</h3>
+        <form method="POST" class="form-inline-group">
+            <div class="form-group">
+                <input type="text" name="name" class="form-control" placeholder="分类名称" required>
+            </div>
+            <div class="form-group">
+                <input type="text" name="description" class="form-control" placeholder="分类描述 (可选)">
+            </div>
+            <div class="form-group">
+                <input type="color" name="color" class="form-control form-control-color" value="#3498db">
+            </div>
+            <div class="form-group">
+                <input type="text" name="icon" class="form-control" placeholder="图标 emoji" value="📁" maxlength="4">
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-plus"></i> 创建
+            </button>
+        </form>
+    </div>
+
+    <!-- 分类列表 -->
+    <div class="card">
+        <h3>现有分类</h3>
+        {% if categories %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>图标</th>
+                        <th>名称</th>
+                        <th>Slug</th>
+                        <th>描述</th>
+                        <th>颜色</th>
+                        <th>文章数</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat in categories %}
+                    <tr>
+                        <td>{{ cat.icon }}</td>
+                        <td><strong>{{ cat.name }}</strong></td>
+                        <td><code>{{ cat.slug }}</code></td>
+                        <td>{{ cat.description or '-' }}</td>
+                        <td>
+                            <span class="color-preview" style="background-color:{{ cat.color }}"></span>
+                            {{ cat.color }}
+                        </td>
+                        <td>{{ cat.posts.count() }}</td>
+                        <td>
+                            <form action="{{ url_for('delete_category', cat_id=cat.id) }}" method="post"
+                                  style="display:inline" onsubmit="return confirm('确定删除分类「{{ cat.name }}」吗？')">
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>暂无分类，请创建一个。</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

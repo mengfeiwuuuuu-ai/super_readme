@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}{% if post %}编辑文章{% else %}新建文章{% endif %} - {{ blog_title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="editor-container">
+        <h1><i class="fas fa-pen-fancy"></i> {% if post %}编辑文章{% else %}新建文章{% endif %}</h1>
+
+        <form method="POST" class="editor-form" id="editorForm">
+            <div class="form-group">
+                <label for="title">文章标题</label>
+                <input type="text" id="title" name="title" class="form-control form-control-lg"
+                       value="{{ post.title if post else '' }}" placeholder="请输入文章标题" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group form-group-half">
+                    <label for="cover_image">封面图片 URL (可选)</label>
+                    <input type="url" id="cover_image" name="cover_image" class="form-control"
+                           value="{{ post.cover_image if post else '' }}" placeholder="https://example.com/image.jpg">
+                </div>
+                <div class="form-group form-group-half">
+                    <label>分类</label>
+                    <div class="checkbox-group">
+                        {% for cat in categories %}
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="categories" value="{{ cat.id }}"
+                                   {% if post and cat in post.categories %}checked{% endif %}>
+                            {{ cat.icon }} {{ cat.name }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="summary">文章摘要 (可选，留空自动生成)</label>
+                <textarea id="summary" name="summary" class="form-control" rows="2"
+                          placeholder="简短描述文章内容...">{{ post.summary if post else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="content">
+                    文章内容 (Markdown)
+                    <button type="button" class="btn btn-sm btn-outline" id="togglePreview">
+                        <i class="fas fa-eye"></i> 预览
+                    </button>
+                </label>
+                <div class="editor-wrapper">
+                    <textarea id="content" name="content" class="form-control editor-textarea"
+                              rows="20" placeholder="在此输入 Markdown 内容...">{{ post.content if post else '' }}</textarea>
+                    <div class="editor-preview markdown-body" id="editorPreview" style="display:none"></div>
+                </div>
+            </div>
+
+            <div class="form-group form-check">
+                <label>
+                    <input type="checkbox" name="is_published"
+                           {% if not post or post.is_published %}checked{% endif %}>
+                    立即发布
+                </label>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> 保存文章
+                </button>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline">
+                    <i class="fas fa-times"></i> 取消
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Markdown 实时预览
+    const contentEl = document.getElementById('content');
+    const previewEl = document.getElementById('editorPreview');
+    const toggleBtn = document.getElementById('togglePreview');
+    let previewVisible = false;
+
+    toggleBtn.addEventListener('click', function() {
+        previewVisible = !previewVisible;
+        if (previewVisible) {
+            previewEl.style.display = 'block';
+            contentEl.style.width = '50%';
+            previewEl.style.width = '50%';
+            updatePreview();
+            toggleBtn.innerHTML = '<i class="fas fa-edit"></i> 编辑';
+        } else {
+            previewEl.style.display = 'none';
+            contentEl.style.width = '100%';
+            toggleBtn.innerHTML = '<i class="fas fa-eye"></i> 预览';
+        }
+    });
+
+    let previewTimer = null;
+    contentEl.addEventListener('input', function() {
+        if (previewVisible) {
+            clearTimeout(previewTimer);
+            previewTimer = setTimeout(updatePreview, 500);
+        }
+    });
+
+    function updatePreview() {
+        fetch('/api/markdown/preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: contentEl.value })
+        })
+        .then(r => r.json())
+        .then(data => {
+            previewEl.innerHTML = data.html;
+        });
+    }
+</script>
+{% endblock %}

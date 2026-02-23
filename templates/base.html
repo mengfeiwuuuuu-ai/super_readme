@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="{{ current_theme }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ blog_title }}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/markdown.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="{{ url_for('index') }}" class="nav-brand">
+                <span class="brand-icon">📝</span>
+                <span class="brand-text">{{ blog_title }}</span>
+            </a>
+
+            <button class="nav-toggle" id="navToggle" aria-label="切换导航">
+                <i class="fas fa-bars"></i>
+            </button>
+
+            <div class="nav-menu" id="navMenu">
+                <div class="nav-links">
+                    <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+                        <i class="fas fa-home"></i> 首页
+                    </a>
+
+                    <!-- 分类下拉 -->
+                    <div class="nav-dropdown">
+                        <a href="#" class="nav-link dropdown-toggle">
+                            <i class="fas fa-folder"></i> 分类 <i class="fas fa-caret-down"></i>
+                        </a>
+                        <div class="dropdown-menu">
+                            {% for cat in all_categories %}
+                            <a href="{{ url_for('view_category', slug=cat.slug) }}" class="dropdown-item">
+                                {{ cat.icon }} {{ cat.name }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <a href="{{ url_for('github_page') }}" class="nav-link {% if request.endpoint == 'github_page' %}active{% endif %}">
+                        <i class="fab fa-github"></i> GitHub
+                    </a>
+
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.is_admin %}
+                        <a href="{{ url_for('admin_dashboard') }}" class="nav-link">
+                            <i class="fas fa-cog"></i> 管理
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('profile') }}" class="nav-link">
+                            <i class="fas fa-user"></i> {{ current_user.username }}
+                        </a>
+                        <a href="{{ url_for('logout') }}" class="nav-link">
+                            <i class="fas fa-sign-out-alt"></i> 退出
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="nav-link">
+                            <i class="fas fa-sign-in-alt"></i> 登录
+                        </a>
+                        <a href="{{ url_for('register') }}" class="nav-link">
+                            <i class="fas fa-user-plus"></i> 注册
+                        </a>
+                    {% endif %}
+                </div>
+
+                <!-- 主题切换 -->
+                <div class="theme-switcher">
+                    <button class="theme-btn" id="themeToggle" title="切换主题">
+                        <i class="fas fa-palette"></i>
+                    </button>
+                    <div class="theme-dropdown" id="themeDropdown">
+                        {% for theme in available_themes %}
+                        <button class="theme-option {% if theme == current_theme %}active{% endif %}"
+                                data-theme="{{ theme }}">
+                            <span class="theme-preview theme-preview-{{ theme }}"></span>
+                            <span>{{ theme|capitalize }}</span>
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- 搜索 -->
+                <form class="search-form" action="{{ url_for('index') }}" method="get">
+                    <div class="search-input-wrapper">
+                        <input type="text" name="q" placeholder="搜索文章..."
+                               value="{{ request.args.get('q', '') }}" class="search-input">
+                        <button type="submit" class="search-btn">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash 消息 -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-container">
+        {% for category, message in messages %}
+        <div class="flash-message flash-{{ category }}">
+            <span>{{ message }}</span>
+            <button class="flash-close" onclick="this.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- 主内容 -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>{{ blog_title }}</h3>
+                    <p>{{ blog_subtitle }}</p>
+                </div>
+                <div class="footer-section">
+                    <h3>快速链接</h3>
+                    <ul>
+                        <li><a href="{{ url_for('index') }}">首页</a></li>
+                        <li><a href="{{ url_for('github_page') }}">GitHub</a></li>
+                        {% if not current_user.is_authenticated %}
+                        <li><a href="{{ url_for('login') }}">登录</a></li>
+                        <li><a href="{{ url_for('register') }}">注册</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>分类</h3>
+                    <ul>
+                        {% for cat in all_categories[:5] %}
+                        <li><a href="{{ url_for('view_category', slug=cat.slug) }}">{{ cat.icon }} {{ cat.name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; {{ current_year }} {{ blog_title }}. Powered by Flask & Markdown.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 回到顶部 -->
+    <button class="back-to-top" id="backToTop" title="回到顶部">
+        <i class="fas fa-chevron-up"></i>
+    </button>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
