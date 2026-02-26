@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# CHECK IF THERE ARE ENOUGH PARAMETERS (ONLY NEEDS ONE PARAMETER: INTERVAL TIME)
+if [ $# -ne 1 ]; then
+    echo "USAGE: $0 <INTERVAL_SECONDS>"
+    echo "EXAMPLE: $0 5 (EXECUTE PREDEFINED COMMAND EVERY 5 SECONDS)"
+    exit 1
+fi
+
+# PARSE PARAMETER (ONLY INTERVAL TIME)
+INTERVAL=$1
+
+# CHECK IF INTERVAL TIME IS A POSITIVE INTEGER
+if ! [[ "$INTERVAL" =~ ^[1-9][0-9]*$ ]]; then
+    echo "ERROR: INTERVAL SECONDS MUST BE A POSITIVE INTEGER"
+    exit 1
+fi
+
+# DEFINE THE COMMAND TO BE EXECUTED HERE (NO NEED TO PASS IT IN THE COMMAND LINE)
+# MODIFY THE FOLLOWING COMMAND CONTENT AS NEEDED
+COMMAND="date +'%Y-%m-%d %H:%M:%S'  # EXAMPLE: OUTPUT CURRENT TIME"
+
+echo "WILL EXECUTE COMMAND EVERY $INTERVAL SECONDS: $COMMAND"
+echo "PRESS Ctrl+C TO EXIT"
+echo "----------------------------------------"
+
+# INITIALIZE EXECUTION COUNT COUNTER
+COUNT=0
+# LOOP TO EXECUTE COMMAND
+while true; do
+    # INCREMENT EXECUTION COUNT
+    COUNT=$((COUNT + 1))
+    
+    # RECORD START TIME
+    START_TIME=$(date +'%Y-%m-%d %H:%M:%S')
+    
+    # DISPLAY CURRENT ROUND EXECUTION INFORMATION
+    echo "ROUND $COUNT EXECUTION STARTED AT: $START_TIME"
+    echo "----------------------------------------"
+    
+    # EXECUTE PREDEFINED COMMAND
+    #eval $COMMAND
+    # eval equip_tool press
+    # WAIT FOR SPECIFIED NUMBER OF SECONDS
+    sleep $INTERVAL
+    # eval killall gpu_burn
+    # eval killall stress
+	
+    # eval equip_tool netloop
+    eval equip_tool ssd
+    eval equip_tool tmp
+    # sleep 1
+    # RECORD END TIME
+    END_TIME=$(date +'%Y-%m-%d %H:%M:%S')
+    
+    # DISPLAY CURRENT ROUND COMPLETION INFORMATION
+    echo "----------------------------------------"
+    echo "ROUND $COUNT EXECUTION FINISHED AT: $END_TIME"
+    echo "WAITING $INTERVAL SECONDS FOR NEXT EXECUTION..."
+    echo "----------------------------------------"
+    echo
+    
+    # WAIT FOR SPECIFIED NUMBER OF SECONDS
+    #sleep $INTERVAL
+done
+    
+

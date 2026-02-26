@@ -1,0 +1,157 @@
+#!/bin/bash
+
+# 判断文件夹是否存在并创建及挂载函数
+create_and_mount() {
+    local folder="$1"
+    local device="$2"
+    #local fs_type="$3"
+
+    #if [! -d "$folder" ]; then
+        mkdir -p "$folder"
+        #mount -t "$fs_type" "$device" "$folder"
+		mount "$device" "$folder"
+    #fi
+}
+
+# 判断文件夹是否存在并删除并卸载函数
+distclean_and_umount() {
+    local folder="$1"
+    local device="$2"
+
+    if [ -d "$folder" ]; then
+        rm -rf "$folder/*"
+		umount "$device"
+    fi
+}
+
+# 使用 dd 测试磁盘读写速度并记录日志函数
+test_disk_speed() {
+    local disk_path="$1"
+    local file_size="$2"
+    local file_name="$3"
+
+    # 写入测试
+    #dd if=/dev/zero of="$disk_path/$file_name" bs=1M count="$file_size" conv=fdatasync,notrunc > "${disk_path}/${file_name}_write_$(date +"%Y%m%d%H%M%S").log" 2>&1
+    # 读取测试
+    #dd if="$disk_path/$file_name" of=/dev/null bs=1M > "${disk_path}/${file_name}_read_$(date +"%Y%m%d%H%M%S").log" 2>&1
+	
+	# 写入测试
+    dd if=/dev/zero of="$disk_path/$file_name" bs=1M count="$file_size" conv=fdatasync,notrunc 2>&1
+    # 读取测试
+    dd if="$disk_path/$file_name" of=/dev/null bs=1M 2>&1
+	
+	# 删除测试文件
+    rm "$disk_path/$file_name" -rf
+}
+
+# 使用hwclock读rtc时钟,每间隔一秒读取一次,共读取10次结束
+hwclock_rtc_show() {
+    for ((i = 0; i < 10; i++)); do
+        hwclock -r -f /dev/rtc1
+        sleep 1
+    done
+}
+# 主函数
+main() {
+    local target="$1"
+
+    case "$target" in
+    ssd)
+		echo "start to test ssd..."
+		echo 3 > /proc/sys/vm/drop_caches
+		devices=("sda" "sdb" "sdc")
+		for device in "${devices[@]}"; do
+			device_path="/sys/block/$device"
+			removable_file="$device_path/removable"
+
+			# 判断设备对应的目录是否存在，即设备是否存在于系统中
+			if [ -d "$device_path" ]; then
+				# 判断removable文件是否存在，避免不存在时报错
+				if [ -f "$removable_file" ]; then
+					# 读取removable文件内容
+					removable_value=$(cat "$removable_file")
+					if [ "$removable_value" == "0" ]; then
+						result=$(hdparm -I /dev/$device)
+						echo "$result"
+						result=$(fdisk -l /dev/$device)
+						echo "$result"
+						fio --allow_mounted_write=1 -ioengine=libaio -bs=4k -direct=1 -thread -rw=read -filename=/dev/$device -name="BS 4KB read test" -iodepth=16 -runtime=10
+					else
+						echo "$device not ssd device."
+					fi
+				else
+					echo "/dev/$device cannt access, device not exit"
+				fi
+			else
+				echo "/dev/$device device not exit."
+			fi
+		done
+        ;;
+    sdcard)
+		echo "start to test sdcard..."
+		echo 3 > /proc/sys/vm/drop_caches
+        if [ -e "/dev/mmcblk1p1" ]; then
+			#create_and_mount "/mnt/sdcard" "/dev/mmcblk1p1"
+            #test_disk_speed "/mnt/sdcard" 100 "100M.bin"
+			#distclean_and_umount "/mnt/sdcard" "/dev/mmcblk1p1"
+			
+			fio --allow_mounted_write=1 -ioengine=libaio -bs=4k -direct=1 -thread -rw=read -filename=/dev/mmcblk1p1 -name="BS 4KB read test" -iodepth=16 -runtime=10
+			#fio --allow_mounted_write=1 -ioengine=libaio -bs=4k -direct=1 -thread -rw=write -filename=/dev/mmcblk1p1 -name="BS 4KB read test" -iodepth=16 -runtime=10
+			#fio --allow_mounted_write=1 -ioengine=libaio -bs=4k -direct=1 -thread -rw=randrw -filename=/dev/mmcblk1p1 -name="BS 4KB read test" -iodepth=16 -runtime=10
+        else
+            echo "sd /dev/mmcblk1p1 does not exist."
+        fi
+        ;;
+	usb)
+		devices=("sda" "sdb" "sdc")
+		for device in "${devices[@]}"; do
+			device_path="/sys/block/$device"
+			removable_file="$device_path/removable"
+
+			# 判断设备对应的目录是否存在，即设备是否存在于系统中
+			if [ -d "$device_path" ]; then
+				# 判断removable文件是否存在，避免不存在时报错
+				if [ -f "$removable_file" ]; then
+					# 读取removable文件内容
+					removable_value=$(cat "$removable_file")
+					if [ "$removable_value" == "0" ]; then
+						echo "$device not usb device."
+						#mount -t ext4 /dev/$device /home
+					else
+						echo "start to test /dev/$device..."
+						echo 3 > /proc/sys/vm/drop_caches
+						if [ -e "/dev/$device" ]; then
+							fio --allow_mounted_write=1 -ioengine=libaio -bs=4k -direct=1 -thread -rw=read -filename=/dev/$device -name="BS 4KB read test" -iodepth=16 -runtime=10
+						else
+							echo "usb /dev/$device does not exist."
+						fi
+					fi
+				else
+					echo "/dev/$device cannt access, device not exit"
+				fi
+			else
+				echo "/dev/$device device not exit."
+			fi
+		done
+        ;;
+	emmc)
+		echo "start to test emmc..."
+		echo 3 > /proc/sys/vm/drop_caches
+		#mkdir -p /userdata/emmc
+		#test_disk_speed "/userdata/emmc" 100 "100M.bin"
+		#rm -rf /userdata/emmc
+		fio --allow_mounted_write=1 -ioengine=libaio -bs=4k -direct=1 -thread -rw=read -filename=/dev/mmcblk0p8 -name="BS 4KB read test" -iodepth=16 -runtime=10
+		#fio --allow_mounted_write=1 -ioengine=libaio -bs=4k -direct=1 -thread -rw=write -filename=/dev/mmcblk0p8 -name="BS 4KB read test" -iodepth=16 -runtime=10
+        ;;
+	rtc)
+		echo "start to test rtc..."
+        hwclock_rtc_show
+		echo ""
+        ;;
+    *)
+        echo "Invalid target. Use 'ssd' or 'sdcard' or 'usb'."
+        ;;
+    esac
+}
+
+main "$@"
