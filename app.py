@@ -17,6 +17,9 @@ from utils.markdown_scanner import (scan_markdown_folder, get_categories_from_fo
                                      generate_slug, generate_summary)
 from utils.github_proxy import GitHubProxy
 
+# 允许在 Web 界面展示的分类名称（对应 posts 下的顶层文件夹）
+ALLOWED_CATEGORY_NAMES = {'技术', '生活', '教程', '项目'}
+
 # ==================== 应用工厂 ====================
 
 def create_app(config_name='default'):
@@ -64,7 +67,10 @@ def create_app(config_name='default'):
     # 上下文处理器
     @app.context_processor
     def inject_globals():
-        categories = Category.query.order_by(Category.order).all()
+        # 只展示允许的四个分类
+        categories = Category.query.filter(
+            Category.name.in_(ALLOWED_CATEGORY_NAMES)
+        ).order_by(Category.order).all()
         current_theme = 'light'
         if current_user.is_authenticated:
             current_theme = current_user.theme or 'light'
@@ -105,6 +111,18 @@ def create_app(config_name='default'):
                     post.cover_image = item['cover_image']
                     post.updated_at = item['updated_at']
                     changed = True
+
+                # 始终确保分类关联正确
+                cat_name = item['category']
+                if cat_name and cat_name in ALLOWED_CATEGORY_NAMES:
+                    cat = Category.query.filter_by(name=cat_name).first()
+                    if not cat:
+                        cat = Category(name=cat_name, slug=generate_slug(cat_name))
+                        db.session.add(cat)
+                        db.session.flush()
+                    if cat not in post.categories:
+                        post.categories = [cat]
+                        changed = True
             else:
                 # 新文件 -> 创建文章
                 slug = item['slug']
@@ -129,9 +147,9 @@ def create_app(config_name='default'):
                 )
                 db.session.add(post)
 
-                # 处理分类
+                # 处理分类（只允许四个顶层分类）
                 cat_name = item['category']
-                if cat_name and cat_name != '未分类':
+                if cat_name and cat_name in ALLOWED_CATEGORY_NAMES:
                     cat = Category.query.filter_by(name=cat_name).first()
                     if not cat:
                         cat = Category(name=cat_name, slug=generate_slug(cat_name))
@@ -147,6 +165,16 @@ def create_app(config_name='default'):
             if fp not in scanned_paths:
                 db.session.delete(post)
                 changed = True
+
+        # 清理不在允许列表中的分类
+        stale_cats = Category.query.filter(
+            ~Category.name.in_(ALLOWED_CATEGORY_NAMES)
+        ).all()
+        for cat in stale_cats:
+            # 将该分类下的文章解除关联，然后删除分类
+            cat.posts  # 触发加载
+            db.session.delete(cat)
+            changed = True
 
         if changed:
             db.session.commit()
@@ -396,7 +424,9 @@ def create_app(config_name='default'):
             flash('文章保存成功！', 'success')
             return redirect(url_for('view_post', slug=post.slug))
 
-        categories = Category.query.order_by(Category.order).all()
+        categories = Category.query.filter(
+            Category.name.in_(ALLOWED_CATEGORY_NAMES)
+        ).order_by(Category.order).all()
         return render_template('editor.html', post=post, categories=categories)
 
     @app.route('/admin/post/delete/<int:post_id>', methods=['POST'])
@@ -433,7 +463,9 @@ def create_app(config_name='default'):
                 db.session.commit()
                 flash(f'分类「{name}」创建成功', 'success')
 
-        categories = Category.query.order_by(Category.order).all()
+        categories = Category.query.filter(
+            Category.name.in_(ALLOWED_CATEGORY_NAMES)
+        ).order_by(Category.order).all()
         return render_template('categories_admin.html', categories=categories)
 
     @app.route('/admin/category/delete/<int:cat_id>', methods=['POST'])
@@ -503,6 +535,17 @@ def create_app(config_name='default'):
                     existing.summary = item['summary']
                     existing.updated_at = item['updated_at']
                     updated += 1
+
+                # 始终确保分类关联正确
+                cat_name = item['category']
+                if cat_name and cat_name in ALLOWED_CATEGORY_NAMES:
+                    cat = Category.query.filter_by(name=cat_name).first()
+                    if not cat:
+                        cat = Category(name=cat_name, slug=generate_slug(cat_name))
+                        db.session.add(cat)
+                        db.session.flush()
+                    if cat not in existing.categories:
+                        existing.categories = [cat]
             else:
                 # 创建新文章
                 slug = item['slug']
@@ -524,9 +567,9 @@ def create_app(config_name='default'):
                 )
                 db.session.add(post)
 
-                # 处理分类
+                # 处理分类（只允许四个顶层分类）
                 cat_name = item['category']
-                if cat_name and cat_name != '未分类':
+                if cat_name and cat_name in ALLOWED_CATEGORY_NAMES:
                     cat = Category.query.filter_by(name=cat_name).first()
                     if not cat:
                         cat = Category(name=cat_name, slug=generate_slug(cat_name))
@@ -671,9 +714,9 @@ def init_db(app):
                     )
                     db.session.add(post)
 
-                    # 分类
+                    # 分类（只允许四个顶层分类）
                     cat_name = item['category']
-                    if cat_name and cat_name != '未分类':
+                    if cat_name and cat_name in ALLOWED_CATEGORY_NAMES:
                         cat = Category.query.filter_by(name=cat_name).first()
                         if not cat:
                             cat = Category(name=cat_name, slug=generate_slug(cat_name))

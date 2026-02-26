@@ -1,9 +1,15 @@
----
-title: Orin烧录NVMe时API调用关系
-date: 2026-02-15
-category: 技术
-tags: 工具, 效率, 推荐
-summary: 开发中总结信息，帮助提升开发体验和工作效率。 
+## 文档控制 (Document Control)
+
+* **作者：** mengfei.wuuuu@gmail.com
+* **日期：** 2026-02-25
+* **当前版本：** V1.0
+* **文档密级：** 内部公开 (Internal)
+
+### 修改记录 (Revision History)
+
+| 版本 (Version) | 修改日期 (Date) | 修改人 (Author) | 修改说明 (Description) |
+| --- | --- | --- | --- |
+| V1.0 | 2026-02-25 | mengfei.wuuuu | 初始版本发布：Orin烧录NVMe时API调用关系 |
 ---
 # Jetson Orin NVMe 烧录 API 调用关系完整梳理
 

@@ -273,11 +273,11 @@ class TestGetCategoriesFromFolder:
     def test_ignore_hidden_folders(self, posts_dir):
         """测试忽略隐藏文件夹"""
         os.makedirs(os.path.join(posts_dir, '.hidden'), exist_ok=True)
-        os.makedirs(os.path.join(posts_dir, 'visible'), exist_ok=True)
+        os.makedirs(os.path.join(posts_dir, '技术'), exist_ok=True)
 
         cats = get_categories_from_folder(posts_dir)
         assert '.hidden' not in cats
-        assert 'visible' in cats
+        assert '技术' in cats
 
     def test_empty_folder(self, posts_dir):
         """测试空文件夹返回空列表"""
@@ -291,7 +291,7 @@ class TestGetCategoriesFromFolder:
 
     def test_sorted_result(self, posts_dir):
         """测试结果按字母排序"""
-        for name in ['c_folder', 'a_folder', 'b_folder']:
+        for name in ['项目', '技术', '生活']:
             os.makedirs(os.path.join(posts_dir, name))
 
         cats = get_categories_from_folder(posts_dir)

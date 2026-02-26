@@ -70,10 +70,21 @@ def scan_markdown_folder(folder_path):
         os.makedirs(folder_path, exist_ok=True)
         return posts
 
+    # 只保留顶层分类文件夹
+    ALLOWED_CATEGORIES = {'技术', '生活', '教程', '项目'}
+
     for root, dirs, files in os.walk(folder_path):
-        # 获取相对于 posts 文件夹的路径作为分类
+        # 获取相对于 posts 文件夹的路径
         rel_path = os.path.relpath(root, folder_path)
-        category = rel_path if rel_path != '.' else '未分类'
+
+        if rel_path == '.':
+            category = '未分类'
+        else:
+            # 只取第一级文件夹名称作为分类（忽略子文件夹名称）
+            top_folder = rel_path.split(os.sep)[0]
+            if top_folder not in ALLOWED_CATEGORIES:
+                continue  # 跳过不在允许列表中的文件夹
+            category = top_folder
 
         for filename in files:
             if not filename.endswith(('.md', '.markdown')):
@@ -129,7 +140,8 @@ def scan_markdown_folder(folder_path):
 
 
 def get_categories_from_folder(folder_path):
-    """从文件夹结构中获取分类列表"""
+    """从文件夹结构中获取分类列表（只返回顶层允许的分类）"""
+    ALLOWED_CATEGORIES = {'技术', '生活', '教程', '项目'}
     categories = set()
 
     if not os.path.exists(folder_path):
@@ -137,7 +149,7 @@ def get_categories_from_folder(folder_path):
 
     for item in os.listdir(folder_path):
         item_path = os.path.join(folder_path, item)
-        if os.path.isdir(item_path) and not item.startswith('.'):
+        if os.path.isdir(item_path) and not item.startswith('.') and item in ALLOWED_CATEGORIES:
             categories.add(item)
 
     return sorted(categories)
